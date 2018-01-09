@@ -18,7 +18,7 @@ LICENSE: GNU General Public License
 
 [src]: https://github.com/erikd/libsamplerate
 [opus]: http://opus-codec.org
-[enscripten]: http://kripken.github.io/emscripten-site/
+[emscripten]: http://kripken.github.io/emscripten-site/
 
 ## Testing
 
