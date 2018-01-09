@@ -22,12 +22,14 @@ LICENSE: GNU General Public License
 
 ## Testing
 
-There is a smallish test suite part of the project written using Facebook jest
+There is a smallish test suite part of the project written using [Facebook jest][jest]
 in the `tests/` folder.
 
 Install jest using `yarn global add jest`.
 
 To run the tests, just run `make test`.
+
+[jest]: https://facebook.github.io/jest/
 
 ## Usage
 
