@@ -35,7 +35,7 @@ To run the tests, just run `make test`.
 
 The resultant `webopus.min.js` is intended to be loaded as a web worker.
 
-```
+```js
 let worker = new Worker('/static/js/webopus.min.js');
 ...
 ```
@@ -51,12 +51,12 @@ follow a simple protocol described below.
 
 Messages part of an encoder stream look like this -
 
-```
+```js
 // First message starting a stream.
 worker.postMessage({
     op: 'begin',
     stream: 'enc1', // Some unique id using which the messages will be associated.
-    enc: new Float32Array(480),
+    frames: new Float32Array(480),
     sampleRate: 48000,
     numChannels: 1
 });
@@ -65,7 +65,7 @@ worker.postMessage({
 worker.postMessage({
     op: 'proc',
     stream: 'enc1',
-    enc: new Float32Array(480)
+    frames: new Float32Array(480)
 });
 
 // The final message that flushes the stream and
@@ -73,18 +73,18 @@ worker.postMessage({
 worker.postMessage({
     op: 'end',
     stream: 'enc1',
-    enc: // Optional last buffer
+    frames: // Optional last buffer
 });
 ```
 
 To receive encoded packets, you need to override the worker's `onmessage` as follows -
 
-```
+```js
 worker.onmessage = function (event) {
     let msg = event.data;
 
     // msg.stream will be the stream ID you gave.
-    // msg.enc will be a Uint8Array for an encoder stream.
+    // msg.packet will be a Uint8Array for an encoder stream.
     // msg.sampleRate will be the input sample rate.
     // msg.encSampleRate will be the sample rate at which the encoder runs.
     //                   That is solely for information purposes. You won't need it.
@@ -99,12 +99,12 @@ worker.onmessage = function (event) {
 
 Decoder streams are very similar to encoder streams.
 
-```
+```js
 // First message starting a stream.
 worker.postMessage({
     op: 'begin',
     stream: 'dec1', // Some unique id using which the messages will be associated.
-    dec: new Uint8Array(34), // An opus codec packet.
+    packet: new Uint8Array(34), // An opus codec packet.
     sampleRate: 48000, // The decoded sampling rate. This can be different from the encoded rate.
     numChannels: 1
 });
@@ -113,7 +113,7 @@ worker.postMessage({
 worker.postMessage({
     op: 'proc',
     stream: 'dec1',
-    dec: new Uint8Array(47)
+    packet: new Uint8Array(47)
 });
 
 // The final message that flushes the stream and
@@ -121,18 +121,18 @@ worker.postMessage({
 worker.postMessage({
     op: 'end',
     stream: 'dec1',
-    dec: // Optional last packet
+    packet: // Optional last packet
 });
 ```
 
 To receive decoded buffers, you need to override the worker's `onmessage` as follows -
 
-```
+```js
 worker.onmessage = function (event) {
     let msg = event.data;
 
     // msg.stream will be the stream ID you gave.
-    // msg.dec will be a Float32Array for a decoder stream.
+    // msg.frames will be a Float32Array for a decoder stream.
     // msg.sampleRate will be the input sample rate.
     // msg.encSampleRate will be the sample rate at which the encoder runs.
     //                   That is solely for information purposes. You won't need it.

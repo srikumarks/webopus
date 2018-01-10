@@ -124,12 +124,12 @@ describe('Worker interface (synchronous)', () => {
         webopus.postMessage = (data, transferables) => {
             expect(data.stream).toBe(streamID);
             expect(data.error).toBeUndefined();
-            if (data.enc) {
-                expect(data.enc.length).toBeGreaterThan(0);
+            if (data.packet) {
+                expect(data.packet.length).toBeGreaterThan(0);
                 expect(data.sampleRate).toBe(SR);
                 expect(data.numChannels).toBe(1);
 
-                packets.push(data.enc);
+                packets.push(data.packet);
             } else {
                 expect(data.end).toBe(true);
             }
@@ -145,7 +145,7 @@ describe('Worker interface (synchronous)', () => {
         webopus.onmessage({data: {
             op: 'begin',
             stream: streamID,
-            enc: sig_in,
+            frames: sig_in,
             sampleRate: SR,
             numChannels: 1
         }});
@@ -182,11 +182,11 @@ describe('Worker interface (synchronous)', () => {
         webopus.postMessage = (data, transferables) => {
             expect(data.stream).toBe(streamID + '_dec');
             expect(data.error).toBeUndefined();
-            if (data.dec) {
-                expect(data.dec.length).toBeGreaterThan(-1);
+            if (data.frames) {
+                expect(data.frames.length).toBeGreaterThan(-1);
                 expect(data.sampleRate).toBe(SR);
                 expect(data.numChannels).toBe(1);
-                decodedSamples.push(data.dec);
+                decodedSamples.push(data.frames);
             } else {
                 expect(data.end).toBe(true);
             }
@@ -203,7 +203,7 @@ describe('Worker interface (synchronous)', () => {
                 stream: streamID + '_dec',
                 sampleRate: SR,
                 numChannels: 1,
-                dec: packets[p]
+                packet: packets[p]
             }});
         }
 

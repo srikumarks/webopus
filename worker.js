@@ -18,8 +18,8 @@
 *
 *    // Only one of the two below can be non-null.
 *    // Gives info about which mode the stream is in.
-*    enc: Optional[Float32Array],
-*    dec: Optional[Uint8Array],
+*    frames: Optional[Float32Array],
+*    packet: Optional[Uint8Array],
 *
 *    // Values for the below two are ignored in messages
 *    // sent after 'begin'.
@@ -34,10 +34,10 @@
 *    stream: 'random_unique_string',
 *
 *    // If the stream is an encoding pipeline, then
-*    // enc will be non-null. If it is a decoding pipeline,
-*    // then dec will be non-null.
-*    enc: Optional[Uint8Array],
-*    dec: Optional[Float32Array],
+*    // packet will be non-null. If it is a decoding pipeline,
+*    // then frames will be non-null.
+*    packet: Optional[Uint8Array],
+*    frames: Optional[Float32Array],
 *
 *    // The following two will always be provided for convenience.
 *    numChannels: 1,
@@ -92,9 +92,9 @@
                     break;
                 }
                 if (stream.encoder) {
-                    encodeSamples(stream, msg.enc, false);
+                    encodeSamples(stream, msg.frames, false);
                 } else if (stream.decoder) {
-                    decodePackets(stream, msg.dec, false);
+                    decodePackets(stream, msg.packet, false);
                 } else {
                     error(msg.stream, "Invalid stream mode.");
                 }
@@ -106,10 +106,10 @@
                     break;
                 }
 
-                if (stream.encoder && msg.enc) {
-                    encodeSamples(stream, msg.enc, false);
-                } else if (stream.decoder && msg.dec) {
-                    decodePackets(stream, msg.dec, false);
+                if (stream.encoder && msg.frames) {
+                    encodeSamples(stream, msg.frames, false);
+                } else if (stream.decoder && msg.packet) {
+                    decodePackets(stream, msg.packet, false);
                 } else {
                     error(msg.stream, "Invalid stream mode.");
                 }
@@ -122,9 +122,9 @@
                 }
 
                 if (stream.encoder) {
-                    encodeSamples(stream, msg.enc || noSampleFrames, true);
+                    encodeSamples(stream, msg.frames || noSampleFrames, true);
                 } else if (stream.decoder) {
-                    decodePackets(stream, msg.dec || emptyPacket, true);
+                    decodePackets(stream, msg.packet || emptyPacket, true);
                 }
                 closeStream(stream);
                 break;
@@ -165,7 +165,7 @@
         stream.opusSampleRate = OpusEncoder.supportedSamplingRate(msg.sampleRate);
         var needsConverter = (stream.opusSampleRate !== stream.sampleRate);
 
-        if (msg.enc) {
+        if (msg.frames) {
             stream.encoder = new OpusEncoder(stream.opusSampleRate, stream.numChannels, 'music');
 
             // The number of samples to accumulate before we can do an encode.
@@ -189,7 +189,7 @@
                 var ratio = stream.opusSampleRate / stream.sampleRate;
                 stream.converter = new SampleRateConverter('default', stream.numChannels, ratio);
             }
-        } else if (msg.dec) {
+        } else if (msg.packet) {
             stream.decoder = new OpusDecoder(stream.opusSampleRate, stream.numChannels);
             if (needsConverter) {
                 // Convert from opus supported rate to given rate.
@@ -299,7 +299,7 @@
 
                 stream.postMessage({
                     stream: stream.id,
-                    enc: packet,
+                    packet: packet,
                     sampleRate: stream.sampleRate,
                     encSampleRate: stream.opusSampleRate,
                     numChannels: stream.numChannels,
@@ -343,7 +343,7 @@
         for (var i = 0; i < resultSamples.length; ++i) {
             stream.postMessage({
                 stream: stream.id,
-                dec: resultSamples[i],
+                frames: resultSamples[i],
                 sampleRate: stream.sampleRate,
                 encSampleRate: stream.opusSampleRate,
                 numChannels: stream.numChannels,
