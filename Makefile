@@ -51,6 +51,9 @@ $(OPUS): $(OPUS).tar.gz
 $(SRCONV).zip:
 	wget $(LIBSRCONV) -O $(SRCONV).zip
 
+# 1. Expand the libsamplerate-master.zip into build/libsamplerate directory.
+# 2. Create a build/libsamplerate/webopus directory as the installation target
+# 3. Build and install only the libsamplerate.a and such library files into build/libsamplerate/webopus/lib
 $(SRCONV): $(SRCONV).zip
 	cd $(DEST) && unzip ../$(SRCONV).zip
 	mv $(DEST)/libsamplerate-master $(SRCONV)
@@ -59,8 +62,9 @@ $(SRCONV): $(SRCONV).zip
 	cd $(SRCONV) \
 		&& source $(EMENV) \
 		&& ./autogen.sh \
-		&& emconfigure ./configure \
-		&& emmake make
+		&& mkdir $(lib) \
+		&& emconfigure ./configure --prefix=`pwd`/$(lib)/\
+		&& emmake make install-libLTLIBRARIES
 
 $(DEST):
 	mkdir -p $(DEST)
@@ -74,7 +78,7 @@ $(DEST)/$(lib).min.js: $(DEST)/$(lib).js
 	rm $(DEST)/$(lib).min.js.tmp
 
 $(DEST)/$(lib).js: $(SRCONV) $(OPUS) \
-			$(SRCONV)/src/.libs/libsamplerate.a \
+			$(SRCONV)/$(lib)/lib/libsamplerate.a \
 			$(OPUS)/.libs/libopus.a \
 			opus_wrapper.js \
 			src_wrapper.js \
@@ -83,7 +87,7 @@ $(DEST)/$(lib).js: $(SRCONV) $(OPUS) \
 	source $(EMENV) \
 		&& emcc $(EMCC_OPTS) \
 				$(OPUS)/.libs/libopus.a \
-				$(SRCONV)/src/.libs/libsamplerate.a \
+				$(SRCONV)/$(lib)/lib/libsamplerate.a \
 				--pre-js pre.js \
 				--post-js utils.js \
 				--post-js opus_wrapper.js \
