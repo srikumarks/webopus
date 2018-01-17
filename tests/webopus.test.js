@@ -1,5 +1,5 @@
 
-const webopus = require('../build/webopus.js');
+const webopus = require('../build/webopus.min.js');
 
 describe('Export checks', () => {
     test('Encoder is exported', () => {
