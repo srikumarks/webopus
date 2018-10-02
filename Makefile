@@ -28,14 +28,15 @@ uglifyjs=uglifyjs
 # The name of the final web worker product. The JS file will
 # be $(lib).js
 lib=webopus
+libasmjs=$(lib).asm
 
 # Various optimization and export settings needed to get emscripten
 # to work on opus and libsamplerate.
-EMCC_OPTS=-O3 --llvm-lto 3 -s NO_FILESYSTEM=1 --memory-init-file 0 \
+EMCC_OPTS=-O2 --llvm-lto 3 -s NO_FILESYSTEM=1 --memory-init-file 0 \
 		  -s EXPORTED_RUNTIME_METHODS="['setValue', 'getValue']" \
 		  -s EXPORTED_FUNCTIONS="['_malloc', '_free', '_opus_strerror', '_opus_encoder_create', '_opus_encoder_destroy', '_opus_encode_float', '_opus_decoder_create', '_opus_decoder_destroy', '_opus_decode_float', '_src_strerror', '_src_new', '_src_delete', '_src_process_direct']"
 
-all: $(OPUS) $(SRCONV) $(DEST) $(DEST)/$(lib).min.js.gz
+all: $(OPUS) $(SRCONV) $(DEST) $(DEST)/$(lib).min.js.gz $(DEST)/$(libasmjs).min.js.gz
 
 $(OPUS).tar.gz:
 	wget $(LIBOPUS) -O $(OPUS).tar.gz
@@ -72,10 +73,18 @@ $(DEST):
 $(DEST)/$(lib).min.js.gz: $(DEST)/$(lib).min.js
 	gzip -f -k $(DEST)/$(lib).min.js
 
+$(DEST)/$(libasmjs).min.js.gz: $(DEST)/$(libasmjs).min.js
+	gzip -f -k $(DEST)/$(libasmjs).min.js
+
 $(DEST)/$(lib).min.js: $(DEST)/$(lib).js
 	$(uglifyjs) $(DEST)/$(lib).js > $(DEST)/$(lib).min.js.tmp
 	cat LICENSE_HEADER $(DEST)/$(lib).min.js.tmp > $(DEST)/$(lib).min.js
 	rm $(DEST)/$(lib).min.js.tmp
+
+$(DEST)/$(libasmjs).min.js: $(DEST)/$(libasmjs).js
+	$(uglifyjs) $(DEST)/$(libasmjs).js > $(DEST)/$(libasmjs).min.js.tmp
+	cat LICENSE_HEADER $(DEST)/$(libasmjs).min.js.tmp > $(DEST)/$(libasmjs).min.js
+	rm $(DEST)/$(libasmjs).min.js.tmp
 
 $(DEST)/$(lib).js: $(SRCONV) $(OPUS) \
 			$(SRCONV)/$(lib)/lib/libsamplerate.a \
@@ -85,7 +94,7 @@ $(DEST)/$(lib).js: $(SRCONV) $(OPUS) \
 			worker.js \
 			pre.js post.js utils.js
 	source $(EMENV) \
-		&& emcc $(EMCC_OPTS) \
+		&& emcc $(EMCC_OPTS) -s WASM=1 \
 				$(OPUS)/.libs/libopus.a \
 				$(SRCONV)/$(lib)/lib/libsamplerate.a \
 				--pre-js pre.js \
@@ -95,6 +104,25 @@ $(DEST)/$(lib).js: $(SRCONV) $(OPUS) \
 				--post-js worker.js \
 				--post-js post.js \
 				-o $(DEST)/$(lib).js
+
+$(DEST)/$(libasmjs).js: $(SRCONV) $(OPUS) \
+			$(SRCONV)/$(lib)/lib/libsamplerate.a \
+			$(OPUS)/.libs/libopus.a \
+			opus_wrapper.js \
+			src_wrapper.js \
+			worker.js \
+			pre.js post.js utils.js
+	source $(EMENV) \
+		&& emcc $(EMCC_OPTS) -s WASM=0 \
+				$(OPUS)/.libs/libopus.a \
+				$(SRCONV)/$(lib)/lib/libsamplerate.a \
+				--pre-js pre.js \
+				--post-js utils.js \
+				--post-js opus_wrapper.js \
+				--post-js src_wrapper.js \
+				--post-js worker.js \
+				--post-js post.js \
+				-o $(DEST)/$(libasmjs).js
 
 upload: $(DEST)/$(lib).min.js.gz
 	s3cmd -P \
