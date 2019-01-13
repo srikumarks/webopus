@@ -119,7 +119,7 @@
             this._frames_in.set(
                 samples.subarray(
                     copied * this._channels, 
-                    this._channels * (n - this._input_pos)), 
+                    (copied + n - this._input_pos) * this._channels), 
                 this._input_pos * this._channels);
             var res = Module._src_process_direct(
                 this._src_state, 
