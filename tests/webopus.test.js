@@ -1,5 +1,5 @@
 
-const webopus = require('../build/webopus.min.js');
+const webopus = require('../build/webopus.asm.min.js');
 
 describe('Export checks', () => {
     test('Encoder is exported', () => {
@@ -55,7 +55,7 @@ describe('SampleRateConverter integration', () => {
     //
     // That said, we do check out the most common conversion
     // we expect to apply on the simplest of signals - sinusoid.
-    let tolerance = 0.025;
+    let tolerance = 0.01, hardTolerance = 1e-6;
 
     test('Convert 44.1KHz mono to 48KHz mono', () => {
         let src = new webopus.SampleRateConverter('default', 1, 48000/44100);
@@ -76,6 +76,34 @@ describe('SampleRateConverter integration', () => {
         src.destroy();
         expect(sig_diff(proc, sig_out)).toBeLessThan(tolerance);
     });
+
+    test('Round trip check - 44.1KHz mono -> 48KHz mono -> 44.1KHz mono', () => {
+        let src1 = new webopus.SampleRateConverter('default', 1, 48000/44100);
+        let src2 = new webopus.SampleRateConverter('default', 1, 44100/48000);
+        
+        let spec = {freq: 440, amp: 0.25};
+        let sig_in = signal(44100, 2, 'tonal', spec);
+        let s48 = consolidate(src1.process(sig_in, true));
+        let sig_out = consolidate(src2.process(s48, true));
+        src1.destroy();
+        src2.destroy();
+        let d = sig_diff(sig_in, sig_out);
+        expect(d).toBeLessThan(hardTolerance);
+    });
+
+    test('Round trip check - 48KHz mono -> 44.1KHz mono -> 48KHz mono', () => {
+        let src1 = new webopus.SampleRateConverter('default', 1, 44100/48000);
+        let src2 = new webopus.SampleRateConverter('default', 1, 48000/44100);
+        
+        let spec = {freq: 440, amp: 0.25};
+        let sig_in = signal(48000, 2, 'tonal', spec);
+        let s441 = consolidate(src1.process(sig_in, true));
+        let sig_out = consolidate(src2.process(s441, true));
+        src1.destroy();
+        src2.destroy();
+        let d = sig_diff(sig_in, sig_out);
+        expect(d).toBeLessThan(hardTolerance);
+    });    
 });
 
 describe('Opus codec integration', () => {
